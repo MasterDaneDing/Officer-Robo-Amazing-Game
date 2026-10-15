@@ -3,9 +3,999 @@
 <head>
 <meta charset="UTF-8">
 <title>Officer Robo's Amazing Game!</title>
-<!-- PLACEHOLDER - full content will be pushed in next step if needed -->
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Luckiest+Guy&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; user-select: none; }
+body { 
+  font-family: 'Fredoka', 'Comic Sans MS', cursive, sans-serif; 
+  background: linear-gradient(135deg, #0a0a2e 0%, #1a1a4e 50%, #0d1b3a 100%); 
+  color: #fff; margin: 0; padding: 20px; text-align: center; min-height: 100vh;
+  overflow-x: hidden;
+}
+h1, h2, h3 { font-family: 'Luckiest Guy', cursive; text-shadow: 3px 3px 0 #003, 0 0 12px #0ff; letter-spacing: 1.5px; }
+#intro { padding: 30px; }
+#intro img { max-width: 65%; max-height: 55vh; border-radius: 20px; box-shadow: 0 0 30px #0ff, 0 0 60px #f0f; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+
+#board-container { 
+  position: relative; width: 920px; max-width: 95%; margin: 15px auto; 
+  border-radius: 20px; overflow: hidden; box-shadow: 0 0 40px #00f, inset 0 0 20px #0ff; 
+  border: 3px solid rgba(0, 255, 255, 0.4);
+}
+#board { width: 100%; display: block; }
+
+.token { 
+  position: absolute; width: 58px; height: 78px; 
+  transition: left 0.28s ease-out, top 0.28s ease-out, transform 0.28s ease; 
+  z-index: 10; filter: drop-shadow(0 5px 6px rgba(0,0,0,0.7)); 
+  pointer-events: none;
+}
+.token.active-token {
+  z-index: 20;
+  filter: drop-shadow(0 0 12px #ff0) drop-shadow(0 5px 6px rgba(0,0,0,0.8));
+}
+.token.hopping {
+  transform: translateY(-22px) scale(1.15);
+}
+.token img { width: 100%; height: 100%; object-fit: contain; }
+.token-label {
+  position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.8); color: #ff0; font-size: 11px; font-weight: 700;
+  padding: 1px 6px; border-radius: 8px; white-space: nowrap; border: 1px solid #0ff;
+}
+
+#dice-area { margin: 15px; }
+.dice { 
+  width: 105px; height: 105px; margin: 10px auto; 
+  background: linear-gradient(145deg, #ffffff, #dcdcdc); 
+  border-radius: 18px; display: flex; align-items: center; justify-content: center; 
+  font-size: 54px; color: #003; font-weight: bold; font-family: 'Luckiest Guy', cursive;
+  box-shadow: 0 8px 0 #999, 0 0 25px #0ff; 
+  transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;
+}
+.dice:hover:not(.disabled) { transform: translateY(-3px) scale(1.05); box-shadow: 0 11px 0 #999, 0 0 35px #ff0; }
+.dice.disabled, button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.5); }
+
+/* Modals */
+.modal-overlay { 
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+  background: rgba(0, 8, 25, 0.94); z-index: 100; padding: 20px; overflow-y: auto;
+  align-items: center; justify-content: center; flex-direction: column;
+}
+.modal-card { 
+  max-width: 900px; width: 95%; margin: auto; background: rgba(15, 30, 75, 0.9);
+  border: 3px solid #0ff; border-radius: 25px; padding: 25px;
+  box-shadow: 0 0 40px rgba(0, 255, 255, 0.4); animation: popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+@keyframes popIn { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+#scene { position: relative; display: inline-block; margin: 10px 0; }
+#scene img.scene-img { max-width: 85%; max-height: 42vh; border-radius: 15px; box-shadow: 0 0 25px #ff0; border: 3px solid #ff0; }
+#scene img.officer { 
+  position: absolute; bottom: -10px; right: -20px; width: 150px; height: auto; 
+  filter: drop-shadow(0 5px 12px rgba(0,0,0,0.85)); animation: float 2s ease-in-out infinite;
+}
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+#options { margin-top: 15px; }
+#options button { 
+  display: block; width: 90%; max-width: 560px; margin: 12px auto; 
+  padding: 16px 22px; font-size: 20px; font-family: 'Fredoka', sans-serif; font-weight: 700;
+  background: linear-gradient(145deg, #1a3a8a, #0a1a4a); color: #fff; 
+  border: 2px solid #0ff; border-radius: 16px; cursor: pointer; 
+  box-shadow: 0 5px 0 #002, 0 0 12px rgba(0,255,255,0.4); transition: all 0.2s;
+}
+#options button:hover:not(:disabled) { 
+  transform: translateY(-3px) scale(1.02); 
+  box-shadow: 0 8px 0 #002, 0 0 22px #0ff; 
+  background: linear-gradient(145deg, #2a5aaa, #1a3a6a); 
+}
+#options button.correct-choice {
+  background: linear-gradient(145deg, #1b8a2a, #0d4a15) !important;
+  border-color: #0f0 !important; box-shadow: 0 0 30px #0f0 !important; transform: scale(1.04);
+}
+#options button.wrong-choice {
+  background: linear-gradient(145deg, #9a1a1a, #4a0a0a) !important;
+  border-color: #f00 !important; box-shadow: 0 0 30px #f00 !important;
+}
+
+#feedback-banner {
+  display: none; margin: 15px auto; padding: 15px 25px; border-radius: 15px;
+  font-size: 22px; font-weight: 700; max-width: 600px;
+}
+
+#winner img { max-height: 45vh; border-radius: 20px; filter: drop-shadow(0 0 30px #ff0); animation: bounce 1.2s infinite; }
+@keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-18px); } }
+
+.controls { margin: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; align-items: center; }
+button { 
+  padding: 12px 24px; font-size: 17px; font-family: 'Fredoka', sans-serif; font-weight: 700;
+  background: linear-gradient(145deg, #0066cc, #003388); color: white; 
+  border: 2px solid #0ff; border-radius: 12px; cursor: pointer; margin: 5px;
+  box-shadow: 0 4px 0 #002, 0 0 10px rgba(0,255,255,0.5); transition: all 0.2s;
+}
+button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 0 #002, 0 0 18px #0ff; }
+
+#score-board { 
+  position: fixed; top: 15px; right: 15px; background: rgba(0, 20, 55, 0.92); 
+  padding: 15px 20px; border-radius: 15px; box-shadow: 0 0 20px #0ff; z-index: 50;
+  font-size: 17px; text-align: left; min-width: 200px; border: 2px solid #0ff;
+}
+#score-board h3 { margin: 0 0 10px 0; font-size: 22px; text-align: center; }
+.score-item { margin: 6px 0; padding: 4px 8px; border-radius: 8px; display: flex; justify-content: space-between; }
+.score-item.active-turn { background: rgba(255, 255, 0, 0.25); border: 1px solid #ff0; color: #ff0; }
+
+#char-select { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin: 20px 0; }
+.char-card { cursor: pointer; transition: transform 0.2s, opacity 0.2s; padding: 10px; border-radius: 18px; background: rgba(255,255,255,0.05); }
+.char-card img { width: 135px; height: 160px; object-fit: contain; border-radius: 12px; filter: drop-shadow(0 5px 8px rgba(0,0,0,0.6)); }
+.char-card .char-title { margin-top: 6px; font-weight: 700; font-size: 15px; color: #0ff; }
+.char-card:hover:not(.taken) { transform: scale(1.08); background: rgba(0,255,255,0.15); }
+.char-card.selected { background: rgba(255,255,0,0.2); border: 2px solid #ff0; transform: scale(1.08); }
+.char-card.taken { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
+
+.name-input { 
+  margin-top: 10px; padding: 12px 16px; border-radius: 12px; border: 3px solid #0ff; 
+  font-family: 'Fredoka', sans-serif; font-size: 18px; width: 220px; background: #0a1535; color: #fff; text-align: center;
+}
+
+#tie-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin: 20px auto; max-width: 550px; }
+.tie-item { 
+  width: 110px; height: 110px; border-radius: 50%; overflow: hidden; cursor: pointer; 
+  border: 4px solid #0ff; transition: transform 0.15s, border-color 0.2s; position: relative;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.6);
+}
+.tie-item img { width: 100%; height: 100%; object-fit: cover; }
+.tie-item:hover { transform: scale(1.12); }
+
+#timer { font-size: 54px; color: #ff0; font-family: 'Luckiest Guy', cursive; margin: 10px; }
+#player-select-info { font-size: 24px; margin: 15px; color: #ff0; font-weight: 700; }
+#station-text { font-size: 24px; margin: 20px; white-space: pre-line; line-height: 1.5; }
+</style>
 </head>
 <body>
-<p>Fixed game loading...</p>
+
+<audio id="theme" loop>
+  <source src="Officer Robo.mp3" type="audio/mpeg">
+</audio>
+
+<!-- INTRO SCREEN -->
+<div id="intro">
+  <h1>Officer Robo's Amazing Game!</h1>
+  <img src="dancing_robots.gif" alt="Dancing Officers" id="dance-gif">
+  <br><br>
+  <button onclick="startGame()" style="font-size:24px; padding:16px 36px;">🚀 Start Game</button>
+  <button onclick="toggleMusic()">🎵 Music On/Off</button>
+</div>
+
+<!-- PLAYER SETUP SCREEN -->
+<div id="setup" style="display:none;">
+  <h2>How many players? (1-4)</h2>
+  <div>
+    <button onclick="setPlayers(1)">1 Player</button>
+    <button onclick="setPlayers(2)">2 Players</button>
+    <button onclick="setPlayers(3)">3 Players</button>
+    <button onclick="setPlayers(4)">4 Players</button>
+  </div>
+  <div id="player-select-info"></div>
+  <div id="char-select"></div>
+  <div id="name-entry-area" style="display:none; margin: 15px auto;">
+    <input type="text" id="name-input" class="name-input" placeholder="Enter your name" maxlength="16">
+    <br>
+    <button id="confirm-name-btn" style="margin-top:12px; background: linear-gradient(145deg, #1b8a2a, #0d4a15);">✅ Confirm Officer</button>
+  </div>
+  <button id="start-btn" style="display:none; margin: 20px auto; font-size: 24px; padding: 16px 40px; background: linear-gradient(145deg, #ff9900, #cc5500);" onclick="beginPlay()">🚓 Begin Adventure!</button>
+</div>
+
+<!-- MAIN GAME BOARD -->
+<div id="game" style="display:none;">
+  <div id="score-board">
+    <h3>🏆 Scores</h3>
+    <div id="score-list"></div>
+  </div>
+  <div class="controls">
+    <button onclick="toggleMusic()" id="music-btn">🎵 Music: ON</button>
+    <button onclick="toggleTTS()" id="tts-btn">🔊 Voice: ON</button>
+    <button onclick="resign()">🏁 End & Scores</button>
+    <span id="current-player" style="font-size:24px; font-weight:bold; color:#ff0; margin-left: 10px;"></span>
+  </div>
+  <div id="board-container">
+    <img id="board" src="New_Gameboard.png" alt="Board">
+  </div>
+  <div id="dice-area">
+    <div id="dice" class="dice" onclick="rollDice()">?</div>
+    <button id="roll-btn" onclick="rollDice()" style="font-size:22px; padding: 14px 32px;">🎲 Roll Dice!</button>
+  </div>
+</div>
+
+<!-- ENCOUNTER MODAL -->
+<div id="encounter" class="modal-overlay">
+  <div class="modal-card">
+    <h2 id="encounter-title">🚨 Encounter!</h2>
+    <div id="scene"></div>
+    <p id="encounter-prompt" style="font-size:24px; margin:12px 0; color:#ff0; font-weight:700;">What should we do?</p>
+    <div id="options"></div>
+    <div id="feedback-banner"></div>
+  </div>
+</div>
+
+<!-- STATION / LEAVING / DEBRIEF MODAL -->
+<div id="station-msg" class="modal-overlay">
+  <div class="modal-card">
+    <h2 id="station-title">🚓 Police Station!</h2>
+    <img id="commander-img" src="imagine_images/U3Lcn.jpg" style="max-height:42vh; max-width:85%; border-radius:15px; border:3px solid #0ff; box-shadow:0 0 25px #0ff;">
+    <p id="station-text"></p>
+    <button onclick="closeStation()" style="font-size:22px; padding:14px 36px;">Continue! ➡️</button>
+  </div>
+</div>
+
+<!-- TIEBREAKER MODAL -->
+<div id="tiebreaker" class="modal-overlay">
+  <div class="modal-card">
+    <h2>⚡ Tie-Breaker! ⚡</h2>
+    <p id="tie-player-banner" style="font-size:24px; color:#0ff; font-weight:bold;"></p>
+    <p style="font-size:18px;">Tap ONLY the GOOD actions! (+1 for Good, -1 for Bad)</p>
+    <div id="timer">20</div>
+    <div id="tie-grid"></div>
+    <p id="tie-score" style="font-size:26px; font-weight:bold; color:#ff0;">Score: 0</p>
+  </div>
+</div>
+
+<!-- WINNER MODAL -->
+<div id="winner" class="modal-overlay">
+  <div class="modal-card">
+    <h1>🎉 Victory! 🎉</h1>
+    <img id="winner-img" src="">
+    <h2 id="winner-name" style="font-size:32px; color:#ff0;"></h2>
+    <div id="final-scores" style="font-size:22px; margin: 15px 0; line-height: 1.6;"></div>
+    <button onclick="location.reload()" style="font-size:22px; padding:15px 35px;">🔄 Play Again</button>
+  </div>
+</div>
+
+<script>
+// --- WEB AUDIO SYNTHESIZER (Zero external SFX files needed) ---
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let sfxCtx = null;
+
+function playSFX(type) {
+  try {
+    if (!sfxCtx) sfxCtx = new AudioCtx();
+    if (sfxCtx.state === 'suspended') sfxCtx.resume();
+    const now = sfxCtx.currentTime;
+
+    if (type === 'hop') {
+      const osc = sfxCtx.createOscillator();
+      const gain = sfxCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(580, now + 0.12);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+      osc.connect(gain); gain.connect(sfxCtx.destination);
+      osc.start(now); osc.stop(now + 0.12);
+    } else if (type === 'dice') {
+      const osc = sfxCtx.createOscillator();
+      const gain = sfxCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(200 + Math.random() * 400, now);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.06);
+      osc.connect(gain); gain.connect(sfxCtx.destination);
+      osc.start(now); osc.stop(now + 0.06);
+    } else if (type === 'correct') {
+      [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+        const osc = sfxCtx.createOscillator();
+        const gain = sfxCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+        gain.gain.setValueAtTime(0.25, now + idx * 0.09);
+        gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.09 + 0.25);
+        osc.connect(gain); gain.connect(sfxCtx.destination);
+        osc.start(now + idx * 0.09); osc.stop(now + idx * 0.09 + 0.25);
+      });
+    } else if (type === 'wrong') {
+      [220, 185].forEach((freq, idx) => {
+        const osc = sfxCtx.createOscillator();
+        const gain = sfxCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.18);
+        gain.gain.setValueAtTime(0.2, now + idx * 0.18);
+        gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.18 + 0.25);
+        osc.connect(gain); gain.connect(sfxCtx.destination);
+        osc.start(now + idx * 0.18); osc.stop(now + idx * 0.18 + 0.25);
+      });
+    }
+  } catch (e) {}
+}
+
+// --- VOICE SYNTHESIS (British English Reader for Primary Students) ---
+let ttsEnabled = true;
+function speakText(text) {
+  if (!ttsEnabled || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'en-GB';
+  utter.rate = 0.95;
+  utter.pitch = 1.05;
+  window.speechSynthesis.speak(utter);
+}
+
+function toggleTTS() {
+  ttsEnabled = !ttsEnabled;
+  document.getElementById('tts-btn').textContent = ttsEnabled ? '🔊 Voice: ON' : '🔇 Voice: OFF';
+  if (!ttsEnabled && ('speechSynthesis' in window)) window.speechSynthesis.cancel();
+}
+
+// --- FISHER-YATES UNBIASED SHUFFLE ---
+function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+const characters = [
+  { name: "Officer Robo", img: "Untitled-20260923-143446-1695.png", leave: "imagine_images/q0997.jpg", win: "imagine_images/S8SSQ.jpg", commanderWin: "imagine_images/S8SSQ.jpg" },
+  { name: "Pink Officer", img: "Untitled-20260923-143441-0697.png", leave: "imagine_images/ha2F5.jpg", win: "imagine_images/IV5Jh.jpg", commanderWin: "imagine_images/IV5Jh.jpg" },
+  { name: "Big Officer", img: "Untitled-20260923-143451-1721.png", leave: "imagine_images/8Vvtl.jpg", win: "imagine_images/RrZX3.jpg", commanderWin: "imagine_images/RrZX3.jpg" },
+  { name: "Mustache Officer", img: "Untitled-20260923-143455-2821.png", leave: "imagine_images/DqUuu.jpg", win: "imagine_images/lPeDh.jpg", commanderWin: "imagine_images/lPeDh.jpg" },
+  { name: "Ponytail Officer", img: "Untitled-20260923-144649-1634.png", leave: "imagine_images/fqJEZ.jpg", win: "imagine_images/XN2Cq.jpg", commanderWin: "imagine_images/XN2Cq.jpg" }
+];
+
+const squarePos = [
+  {x:50, y:15},  {x:56, y:17},  {x:62, y:20},  {x:68, y:24},  {x:74, y:29},
+  {x:79, y:35},  {x:82, y:42},  {x:83, y:50},  {x:81, y:58},  {x:77, y:65},
+  {x:71, y:71},  {x:64, y:75},  {x:56, y:78},  {x:48, y:79},  {x:40, y:78},
+  {x:33, y:74},  {x:27, y:68},  {x:23, y:61},  {x:21, y:53},  {x:21, y:44},
+  {x:23, y:36},  {x:27, y:28},  {x:33, y:22},  {x:40, y:17},  {x:48, y:14},
+  {x:56, y:13},  {x:63, y:15},  {x:69, y:19},  {x:74, y:24},  {x:78, y:30}
+];
+
+// Token offsets so 4 players on the same square never completely hide each other
+const tokenOffsets = [
+  {dx: -1.6, dy: -1.2},
+  {dx: 1.6,  dy: -1.2},
+  {dx: -1.6, dy: 1.4},
+  {dx: 1.6,  dy: 1.4}
+];
+
+let players = [];
+let numPlayers = 1;
+let currentPlayer = 0;
+let musicOn = true;
+let selectingFor = 0;
+let isBusy = false;
+let stationCallback = null;
+const theme = document.getElementById('theme');
+
+function startGame() {
+  document.getElementById('intro').style.display = 'none';
+  document.getElementById('setup').style.display = 'block';
+  if (musicOn) theme.play().catch(() => {});
+  setPlayers(1); // Default to 1 player view immediately
+}
+
+function setPlayers(n) {
+  numPlayers = n;
+  players = [];
+  selectingFor = 0;
+  for (let i = 0; i < n; i++) {
+    players.push({ id: i, char: null, name: '', pos: 1, score: 0, finished: false, lap: 1 });
+  }
+  document.getElementById('start-btn').style.display = 'none';
+  document.getElementById('name-entry-area').style.display = 'none';
+  renderCharSelect();
+}
+
+function renderCharSelect() {
+  const info = document.getElementById('player-select-info');
+  info.textContent = `Player ${selectingFor + 1}: Click your Officer!`;
+  const div = document.getElementById('char-select');
+  div.innerHTML = '';
+  const takenChars = players.map(p => p.char).filter(c => c !== null);
+
+  characters.forEach((c, i) => {
+    const card = document.createElement('div');
+    card.className = 'char-card' + (takenChars.includes(i) ? ' taken' : '');
+    const img = document.createElement('img');
+    img.src = c.img;
+    img.alt = c.name;
+    const title = document.createElement('div');
+    title.className = 'char-title';
+    title.textContent = c.name;
+    card.appendChild(img);
+    card.appendChild(title);
+    card.onclick = () => selectChar(i, card);
+    div.appendChild(card);
+  });
+}
+
+function selectChar(idx, card) {
+  playSFX('hop');
+  document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  const entryArea = document.getElementById('name-entry-area');
+  const input = document.getElementById('name-input');
+  entryArea.style.display = 'block';
+  input.value = '';
+  input.placeholder = `Name for ${characters[idx].name}`;
+  input.focus();
+
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      confirmName(idx);
+    }
+  };
+  document.getElementById('confirm-name-btn').onclick = () => confirmName(idx);
+}
+
+function confirmName(charIdx) {
+  if (players[selectingFor].char !== null) return;
+  const input = document.getElementById('name-input');
+  const name = input.value.trim() || characters[charIdx].name;
+  players[selectingFor].char = charIdx;
+  players[selectingFor].name = name;
+  playSFX('correct');
+  selectingFor++;
+  document.getElementById('name-entry-area').style.display = 'none';
+
+  if (selectingFor < numPlayers) {
+    renderCharSelect();
+  } else {
+    document.getElementById('start-btn').style.display = 'inline-block';
+    document.getElementById('player-select-info').textContent = 'All Officers Ready for Patrol!';
+    document.getElementById('char-select').innerHTML = '';
+  }
+}
+
+function beginPlay() {
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  placeTokens();
+  currentPlayer = 0;
+  updateUI();
+  showLeaving(0, true);
+}
+
+function placeTokens() {
+  const cont = document.getElementById('board-container');
+  // Remove any existing tokens
+  cont.querySelectorAll('.token').forEach(t => t.remove());
+  players.forEach((p, i) => {
+    const token = document.createElement('div');
+    token.className = 'token';
+    token.id = 'token-' + i;
+    const img = document.createElement('img');
+    img.src = characters[p.char].img;
+    const label = document.createElement('div');
+    label.className = 'token-label';
+    label.textContent = p.name;
+    token.appendChild(img);
+    token.appendChild(label);
+    cont.appendChild(token);
+    updateTokenPos(i);
+  });
+}
+
+function updateTokenPos(i) {
+  const token = document.getElementById('token-' + i);
+  if (!token) return;
+  const posIndex = Math.min(Math.max(players[i].pos - 1, 0), squarePos.length - 1);
+  const pos = squarePos[posIndex];
+  const off = tokenOffsets[i % tokenOffsets.length];
+  token.style.left = (pos.x - 3 + off.dx) + '%';
+  token.style.top = (pos.y - 5 + off.dy) + '%';
+}
+
+function setDiceLocked(locked) {
+  isBusy = locked;
+  const dice = document.getElementById('dice');
+  const btn = document.getElementById('roll-btn');
+  if (locked) {
+    dice.classList.add('disabled');
+    btn.disabled = true;
+  } else {
+    dice.classList.remove('disabled');
+    btn.disabled = false;
+  }
+}
+
+function rollDice() {
+  if (isBusy) return;
+  setDiceLocked(true);
+  const dice = document.getElementById('dice');
+  let ticks = 0;
+  const rollInterval = setInterval(() => {
+    playSFX('dice');
+    dice.textContent = Math.floor(Math.random() * 6) + 1;
+    dice.style.transform = `rotate(${Math.random() * 30 - 15}deg) scale(1.15)`;
+    ticks++;
+    if (ticks >= 8) {
+      clearInterval(rollInterval);
+      const finalRoll = Math.floor(Math.random() * 6) + 1;
+      dice.textContent = finalRoll;
+      dice.style.transform = 'scale(1)';
+      movePlayerStepByStep(finalRoll);
+    }
+  }, 65);
+}
+
+async function movePlayerStepByStep(steps) {
+  const p = players[currentPlayer];
+  if (p.finished) { nextTurn(); return; }
+
+  const token = document.getElementById('token-' + currentPlayer);
+  let remaining = Math.max(1, Math.min(6, steps));
+  let reachedStation = false;
+
+  while (remaining > 0) {
+    await new Promise(r => setTimeout(r, 300));
+    playSFX('hop');
+    if (token) token.classList.add('hopping');
+
+    if (p.pos === 30) {
+      p.pos = 1;
+      p.lap++;
+      reachedStation = true;
+      remaining = 0;
+    } else {
+      p.pos++;
+      remaining--;
+    }
+    updateTokenPos(currentPlayer);
+    setTimeout(() => { if (token) token.classList.remove('hopping'); }, 220);
+  }
+
+  await new Promise(r => setTimeout(r, 450));
+
+  // Round 1 Group Debrief Trigger
+  if (reachedStation && p.lap === 2) {
+    players.forEach((pl, idx) => { pl.pos = 1; pl.lap = 2; updateTokenPos(idx); });
+    showGroupDebrief();
+    return;
+  }
+
+  // Round 2 Finish Trigger
+  if (p.lap > 2) {
+    p.finished = true;
+    if (players.every(pl => pl.finished)) {
+      checkEnd();
+    } else {
+      showStationModal(
+        `🏁 ${p.name} Finished Patrol!`,
+        `${p.name} has completed Round 2 with ${p.score} points!\nWaiting for the other officers to finish.`,
+        characters[p.char].win,
+        () => nextTurn()
+      );
+    }
+    return;
+  }
+
+  handleSquare(p.pos);
+}
+
+function showStationModal(title, text, imgSrc, onContinue) {
+  document.getElementById('station-title').textContent = title;
+  document.getElementById('station-text').textContent = text;
+  document.getElementById('commander-img').src = imgSrc || 'imagine_images/U3Lcn.jpg';
+  document.getElementById('station-msg').style.display = 'flex';
+  stationCallback = onContinue;
+  speakText(text);
+}
+
+function closeStation() {
+  document.getElementById('station-msg').style.display = 'none';
+  if (stationCallback) {
+    const cb = stationCallback;
+    stationCallback = null;
+    cb();
+  } else {
+    nextTurn();
+  }
+}
+
+function showGroupDebrief() {
+  playSFX('correct');
+  const ranks = getRanks();
+  let text = "📋 Round 1 Complete! Scores so far:\n\n";
+  players.forEach((pl, i) => {
+    const rank = ranks[i] || 1;
+    const rankText = ['1st 🥇','2nd 🥈','3rd 🥉','4th'][rank-1] || rank + 'th';
+    text += `${pl.name}: ${pl.score} points (${rankText})\n`;
+  });
+  text += "\nGreat job Officers! Head back out for Round 2!";
+  showStationModal("🚓 Back at the Station!", text, 'imagine_images/U3Lcn.jpg', () => nextTurn());
+}
+
+function getRanks() {
+  const sorted = [...players].map((p,i) => ({...p, orig:i})).sort((a,b) => b.score - a.score);
+  const ranks = {};
+  sorted.forEach((p, i) => { ranks[p.orig] = i + 1; });
+  return ranks;
+}
+
+function handleSquare(sq) {
+  if (sq === 1) { 
+    showLeaving(currentPlayer, false); 
+    return; 
+  }
+  // Easter egg: 1 in 50 chance
+  if (Math.random() < (1/50)) {
+    showEasterEgg();
+    return;
+  }
+  let type = 'nice';
+  if (sq >= 2 && sq <= 6) type = 'neighbour';
+  else if (sq >= 7 && sq <= 11) type = 'train';
+  else if (sq >= 12 && sq <= 16) type = 'eating';
+  else if (sq >= 17 && sq <= 21) type = 'highway';
+  else if (sq >= 22 && sq <= 27) type = 'dangerous';
+  else if (sq >= 28 && sq <= 30) type = 'nice';
+
+  const enc = getEncounter(type);
+  if (enc) showEncounter(enc);
+  else nextTurn();
+}
+
+function showEasterEgg() {
+  playSFX('correct');
+  const p = players[currentPlayer];
+  p.score += 5;
+  updateUI();
+
+  document.getElementById('encounter-title').textContent = "🌟 BONUS SURPRISE! 🌟";
+  document.getElementById('encounter-prompt').textContent = "Mr. Dane loves you! You get +5 FREE POINTS!";
+  document.getElementById('scene').innerHTML = `<img class="scene-img" src="sticker_03.webp" alt="Mr Dane">`;
+  document.getElementById('options').innerHTML = '';
+  const fb = document.getElementById('feedback-banner');
+  fb.style.display = 'none';
+
+  document.getElementById('encounter').style.display = 'flex';
+  speakText("Mr. Dane loves you! Get 5 free points!");
+
+  setTimeout(() => {
+    document.getElementById('encounter').style.display = 'none';
+    nextTurn();
+  }, 3200);
+}
+
+function getEncounter(type) {
+  const encounters = {
+    neighbour: [
+      { img: "imagine_images/JNG83.jpg", correct: "We should put the rubbish into the bin!", options: ["We should put the rubbish into the bin!", "We should leave the rubbish on the ground.", "We must throw it into the flowers.", "We must kiss mummy."] },
+      { img: "imagine_images/SPsGM.jpg", correct: "We should put the rubbish into the bin!", options: ["We should put the rubbish into the bin!", "We should dump it everywhere.", "We must leave the mess.", "We must kiss mummy."] },
+      { img: "imagine_images/BmoKS.jpg", correct: "We should put the rubbish into the bin!", options: ["We should put the rubbish into the bin!", "We should throw rubbish in the air.", "We must make a big mess.", "We must kiss mummy."] },
+      { img: "imagine_images/ko8yy.jpg", correct: "We should put the rubbish into the bin!", options: ["We should put the rubbish into the bin!", "We should dump the whole bin.", "We must leave it on the ground.", "We must kiss mummy."] },
+      { img: "imagine_images/V4dWX.jpg", correct: "We shouldn't take the flowers!", options: ["We shouldn't take the flowers!", "We should pick all the flowers.", "We must steal the flowers.", "We must kiss mummy."] },
+      { img: "imagine_images/z1xYc.jpg", correct: "We shouldn't take the flowers!", options: ["We shouldn't take the flowers!", "We should yank the whole bush.", "We must steal plants.", "We must kiss mummy."] },
+      { img: "imagine_images/H1i0S.jpg", correct: "We shouldn't take the flowers!", options: ["We shouldn't take the flowers!", "We should pull them all out.", "We must steal the flowers.", "We must kiss mummy."] },
+      { img: "imagine_images/A3Cno.jpg", correct: "We shouldn't take the flowers!", options: ["We shouldn't take the flowers!", "We should pick the whole bush.", "We must take all the flowers.", "We must kiss mummy."] },
+      { img: "imagine_images/6r4kw.jpg", correct: "We mustn't spit on the ground!", options: ["We mustn't spit on the ground!", "We should spit everywhere.", "We must spit on the flowers.", "We must kiss mummy."] },
+      { img: "imagine_images/KlJKe.jpg", correct: "We mustn't spit on the ground!", options: ["We mustn't spit on the ground!", "We should spit huge arcs.", "We must spit at people.", "We must kiss mummy."] },
+      { img: "imagine_images/gCFYF.jpg", correct: "We mustn't spit on the ground!", options: ["We mustn't spit on the ground!", "We should spit a massive arc.", "We must spit everywhere.", "We must kiss mummy."] },
+      { img: "imagine_images/X6kn1.jpg", correct: "We mustn't spit on the ground!", options: ["We mustn't spit on the ground!", "We should spit in the park.", "We must spit on the path.", "We must kiss mummy."] },
+      { img: "imagine_images/bLeoB.jpg", correct: "We shouldn't talk so loudly on the phone!", options: ["We shouldn't talk so loudly on the phone!", "We should shout on the phone.", "We must talk loudly all the time.", "We must kiss mummy."] },
+      { img: "imagine_images/THdy7.jpg", correct: "We should put the rubbish into the bin!", options: ["We should put the rubbish into the bin!", "We should drop litter in the park.", "We must leave rubbish everywhere.", "We must kiss mummy."] },
+      { img: "imagine_images/ZCsNE.jpg", correct: "We should put the rubbish into the bin!", options: ["We should put the rubbish into the bin!", "We should dump the bag on the street.", "We must make a mess.", "We must kiss mummy."] },
+      { img: "imagine_images/TjvZj.jpg", correct: "We shouldn't take the flowers!", options: ["We shouldn't take the flowers!", "We should pick the whole bunch.", "We must steal the flowers.", "We must kiss mummy."] },
+      { img: "imagine_images/OvGjC.jpg", correct: "We shouldn't talk so loudly on the phone!", options: ["We shouldn't talk so loudly on the phone!", "We should shout on the phone.", "We must talk loudly outside.", "We must kiss mummy."] },
+      { img: "imagine_images/i8Bu2.jpg", correct: "We mustn't spit on the ground!", options: ["We mustn't spit on the ground!", "We should spit on the path.", "We must spit everywhere.", "We must kiss mummy."] }
+    ],
+    train: [
+      { img: "imagine_images/DItRq.jpg", correct: "We shouldn't talk loudly on the phone!", options: ["We shouldn't talk loudly on the phone!", "We should shout on the train.", "We must talk loudly always.", "We must kiss mummy."] },
+      { img: "imagine_images/NpQ0v.jpg", correct: "We shouldn't talk loudly on the phone!", options: ["We shouldn't talk loudly on the phone!", "We should make sound waves.", "We must be noisy.", "We must kiss mummy."] },
+      { img: "imagine_images/e5sKl.jpg", correct: "We shouldn't talk loudly on the phone!", options: ["We shouldn't talk loudly on the phone!", "We should shout with big sound.", "We must be noisy on the train.", "We must kiss mummy."] },
+      { img: "imagine_images/aUhrP.jpg", correct: "We mustn't shout on the train!", options: ["We mustn't shout on the train!", "We should shout louder.", "We must be angry on the train.", "We must kiss mummy."] },
+      { img: "imagine_images/ixw3Q.jpg", correct: "We mustn't shout on the train!", options: ["We mustn't shout on the train!", "We should have a huge head shout.", "We must scare people.", "We must kiss mummy."] },
+      { img: "imagine_images/iFqR7.jpg", correct: "We mustn't shout on the train!", options: ["We mustn't shout on the train!", "We should shout with steam.", "We must yell on the train.", "We must kiss mummy."] },
+      { img: "imagine_images/E7Mqy.jpg", correct: "We mustn't spit on the train!", options: ["We mustn't spit on the train!", "We should spit on the floor.", "We must spit at people.", "We must kiss mummy."] },
+      { img: "imagine_images/fMC3S.jpg", correct: "We shouldn't put our feet on the seats!", options: ["We shouldn't put our feet on the seats!", "We should put feet on seats.", "We must rest our feet there.", "We must kiss mummy."] },
+      { img: "imagine_images/U699Z.jpg", correct: "We must cover our mouth when coughing!", options: ["We must cover our mouth when coughing!", "We should cough on people.", "We must spray germs.", "We must kiss mummy."] },
+      { img: "imagine_images/eyepB.jpg", correct: "We mustn't shout on the train!", options: ["We mustn't shout on the train!", "We should shout with a huge mouth.", "We must yell on the train.", "We must kiss mummy."] },
+      { img: "imagine_images/oeYD6.jpg", correct: "We shouldn't put our feet on the seats!", options: ["We shouldn't put our feet on the seats!", "We should put feet up.", "We must rest our feet on seats.", "We must kiss mummy."] },
+      { img: "imagine_images/DbqNs.jpg", correct: "We mustn't spit on the train!", options: ["We mustn't spit on the train!", "We should spit on the floor.", "We must spit everywhere.", "We must kiss mummy."] },
+      { img: "imagine_images/S2R2E.jpg", correct: "We must cover our mouth when coughing!", options: ["We must cover our mouth when coughing!", "We should cough on people.", "We must spray germs.", "We must kiss mummy."] }
+    ],
+    eating: [
+      { img: "imagine_images/MbNTu.jpg", correct: "We shouldn't waste food!", options: ["We shouldn't waste food!", "We should throw food on the floor.", "We must waste all the food.", "We must kiss mummy."] },
+      { img: "imagine_images/TxMFS.jpg", correct: "We shouldn't waste food!", options: ["We shouldn't waste food!", "We should throw noodles in the air.", "We must make a mess.", "We must kiss mummy."] },
+      { img: "imagine_images/jZkPF.jpg", correct: "We shouldn't waste food!", options: ["We shouldn't waste food!", "We should throw noodles around.", "We must waste the food.", "We must kiss mummy."] },
+      { img: "imagine_images/dvd8E.jpg", correct: "We shouldn't waste food!", options: ["We shouldn't waste food!", "We should leave a huge mess.", "We must waste everything.", "We must kiss mummy."] },
+      { img: "imagine_images/WaQJr.jpg", correct: "We shouldn't cut the queue!", options: ["We shouldn't cut the queue!", "We should push to the front.", "We must always cut the queue.", "We must kiss mummy."] },
+      { img: "imagine_images/mDxUw.jpg", correct: "We shouldn't cut the queue!", options: ["We shouldn't cut the queue!", "We should slide under people.", "We must sneak ahead.", "We must kiss mummy."] },
+      { img: "imagine_images/7VDKF.jpg", correct: "We shouldn't cut the queue!", options: ["We shouldn't cut the queue!", "We should push in front.", "We must cut the queue.", "We must kiss mummy."] },
+      { img: "imagine_images/BXCmt.jpg", correct: "We should say thank you!", options: ["We should say thank you!", "We shouldn't say thank you.", "We must be rude.", "We must kiss mummy."] },
+      { img: "imagine_images/SxOYk.jpg", correct: "We should be polite to the waiter!", options: ["We should be polite to the waiter!", "We should shout at the waiter.", "We must be angry.", "We must kiss mummy."] },
+      { img: "imagine_images/smHEP.jpg", correct: "We should be polite to the waiter!", options: ["We should be polite to the waiter!", "We should yell at the waiter.", "We must be rude.", "We must kiss mummy."] },
+      { img: "imagine_images/1VHKQ.jpg", correct: "We shouldn't waste food!", options: ["We shouldn't waste food!", "We should throw food around.", "We must waste the meal.", "We must kiss mummy."] },
+      { img: "imagine_images/3MDMn.jpg", correct: "We should be polite to the waiter!", options: ["We should be polite to the waiter!", "We should yell at the waiter.", "We must be rude.", "We must kiss mummy."] },
+      { img: "imagine_images/OEWcL.jpg", correct: "We shouldn't cut the queue!", options: ["We shouldn't cut the queue!", "We should push to the front with food.", "We must cut the line.", "We must kiss mummy."] }
+    ],
+    highway: [
+      { img: "imagine_images/2DRVU.jpg", correct: "We must wear our seatbelt!", options: ["We must wear our seatbelt!", "We shouldn't wear a seatbelt.", "We must drive without it.", "We must kiss mummy."] },
+      { img: "imagine_images/JWs20.jpg", correct: "We must wear our seatbelt!", options: ["We must wear our seatbelt!", "We should get flung around.", "We must fly in the car.", "We must kiss mummy."] },
+      { img: "imagine_images/hu2Jq.jpg", correct: "We must wear our seatbelt!", options: ["We must wear our seatbelt!", "We should fly around the car.", "We must not wear it.", "We must kiss mummy."] },
+      { img: "imagine_images/RiG5y.jpg", correct: "We mustn't throw litter from the car!", options: ["We mustn't throw litter from the car!", "We should throw rubbish out the window.", "We must litter on the highway.", "We must kiss mummy."] },
+      { img: "imagine_images/njgaU.jpg", correct: "We mustn't throw litter from the car!", options: ["We mustn't throw litter from the car!", "We should dump a huge pile.", "We must make the road dirty.", "We must kiss mummy."] },
+      { img: "imagine_images/bpBI2.jpg", correct: "We mustn't throw litter from the car!", options: ["We mustn't throw litter from the car!", "We should throw rubbish out.", "We must litter from the car.", "We must kiss mummy."] },
+      { img: "imagine_images/GvTdd.jpg", correct: "We shouldn't drive too fast!", options: ["We shouldn't drive too fast!", "We should speed all the time.", "We must go very fast.", "We must kiss mummy."] },
+      { img: "imagine_images/oJISJ.jpg", correct: "We mustn't throw litter from the car!", options: ["We mustn't throw litter from the car!", "We should throw rubbish out the window.", "We must litter on the highway.", "We must kiss mummy."] },
+      { img: "imagine_images/fLtd8.jpg", correct: "We must wear our seatbelt!", options: ["We must wear our seatbelt!", "We should bounce around the car.", "We must not wear a seatbelt.", "We must kiss mummy."] },
+      { img: "imagine_images/G9zqh.jpg", correct: "We shouldn't drive too fast!", options: ["We shouldn't drive too fast!", "We should speed everywhere.", "We must go super fast.", "We must kiss mummy."] }
+    ],
+    dangerous: [
+      { img: "imagine_images/fjM0m.jpg", correct: "We mustn't fight or be violent!", options: ["We mustn't fight or be violent!", "We should punch people.", "We must always fight.", "We must kiss mummy."] },
+      { img: "imagine_images/zIBaG.jpg", correct: "We mustn't fight or be violent!", options: ["We mustn't fight or be violent!", "We should slap fight.", "We must be aggressive.", "We must kiss mummy."] },
+      { img: "imagine_images/lfHWr.jpg", correct: "We mustn't fight or be violent!", options: ["We mustn't fight or be violent!", "We should slap fight.", "We must fight people.", "We must kiss mummy."] },
+      { img: "imagine_images/3W9eY.jpg", correct: "We mustn't fight or be violent!", options: ["We mustn't fight or be violent!", "We should raise fists.", "We must start a fight.", "We must kiss mummy."] },
+      { img: "imagine_images/bxvLa.jpg", correct: "We shouldn't shout aggressively!", options: ["We shouldn't shout aggressively!", "We should shout at everyone.", "We must be mean.", "We must kiss mummy."] },
+      { img: "imagine_images/K1RZm.jpg", correct: "We shouldn't litter even on a dangerous street!", options: ["We shouldn't litter even on a dangerous street!", "We should throw rubbish everywhere.", "We must make it messier.", "We must kiss mummy."] },
+      { img: "imagine_images/sI7Ym.jpg", correct: "We mustn't fight or be violent!", options: ["We mustn't fight or be violent!", "We should argue and point.", "We must be aggressive.", "We must kiss mummy."] },
+      { img: "imagine_images/wCqqa.jpg", correct: "We shouldn't litter even on a dangerous street!", options: ["We shouldn't litter even on a dangerous street!", "We should dump rubbish everywhere.", "We must make it messier.", "We must kiss mummy."] },
+      { img: "imagine_images/HJg8B.jpg", correct: "We mustn't fight or be violent!", options: ["We mustn't fight or be violent!", "We should run around fighting.", "We must start a fight.", "We must kiss mummy."] }
+    ],
+    nice: [
+      { img: "imagine_images/cfhEV.jpg", correct: "We shouldn't cut the queue!", options: ["We shouldn't cut the queue!", "We should push in front.", "We must always go first.", "We must kiss mummy."] },
+      { img: "imagine_images/0IGa2.jpg", correct: "We shouldn't cut the queue!", options: ["We shouldn't cut the queue!", "We should slide under people.", "We must sneak ahead.", "We must kiss mummy."] },
+      { img: "imagine_images/IpnqU.jpg", correct: "We shouldn't cut the queue!", options: ["We shouldn't cut the queue!", "We should push to the front.", "We must always go first.", "We must kiss mummy."] },
+      { img: "imagine_images/UOkIR.jpg", correct: "We should put the rubbish into the bin!", options: ["We should put the rubbish into the bin!", "We should leave the mess on the street.", "We must dump rubbish.", "We must kiss mummy."] }
+    ]
+  };
+  const list = encounters[type] || encounters.nice;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function showEncounter(enc) {
+  const div = document.getElementById('encounter');
+  document.getElementById('encounter-title').textContent = `🚨 ${players[currentPlayer].name}'s Encounter!`;
+  document.getElementById('encounter-prompt').textContent = "What should we do?";
+  
+  const fb = document.getElementById('feedback-banner');
+  fb.style.display = 'none';
+
+  const scene = document.getElementById('scene');
+  const officerImg = characters[players[currentPlayer].char].img;
+  scene.innerHTML = `
+    <img class="scene-img" src="${enc.img}" alt="Scene">
+    <img class="officer" src="${officerImg}" alt="Officer">
+  `;
+
+  const opts = document.getElementById('options');
+  opts.innerHTML = '';
+  const shuffled = shuffleArray(enc.options);
+
+  shuffled.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.textContent = opt;
+    btn.onmouseenter = () => speakText(opt);
+    btn.onclick = () => handleAnswer(btn, opt === enc.correct, enc.correct, opts);
+    opts.appendChild(btn);
+  });
+
+  div.style.display = 'flex';
+  speakText("What should we do?");
+}
+
+function handleAnswer(clickedBtn, isCorrect, rightAnswer, optsContainer) {
+  const allBtns = optsContainer.querySelectorAll('button');
+  allBtns.forEach(b => {
+    b.disabled = true;
+    if (b.textContent === rightAnswer) b.classList.add('correct-choice');
+  });
+
+  const fb = document.getElementById('feedback-banner');
+  fb.style.display = 'block';
+
+  if (isCorrect) {
+    playSFX('correct');
+    players[currentPlayer].score++;
+    fb.style.background = 'rgba(0, 180, 50, 0.9)';
+    fb.style.border = '2px solid #0f0';
+    fb.textContent = `✅ Awesome job! +1 Point!`;
+    speakText("Correct! " + rightAnswer);
+  } else {
+    playSFX('wrong');
+    clickedBtn.classList.add('wrong-choice');
+    fb.style.background = 'rgba(200, 30, 30, 0.9)';
+    fb.style.border = '2px solid #f00';
+    fb.textContent = `❌ Not quite! Answer: ${rightAnswer}`;
+    speakText("Not quite! " + rightAnswer);
+  }
+
+  updateUI();
+  setTimeout(() => {
+    document.getElementById('encounter').style.display = 'none';
+    nextTurn();
+  }, 2400);
+}
+
+function showLeaving(pi, isInitial = false) {
+  const p = players[pi];
+  const charObj = characters[p.char];
+  showStationModal(
+    `🚓 Heading Out on Patrol!`,
+    `${p.name} (${charObj.name}) is leaving the police station!`,
+    charObj.leave,
+    () => {
+      if (isInitial) {
+        setDiceLocked(false);
+      } else {
+        nextTurn();
+      }
+    }
+  );
+}
+
+function nextTurn() {
+  if (players.every(p => p.finished || p.lap > 2)) {
+    checkEnd();
+    return;
+  }
+  currentPlayer = (currentPlayer + 1) % numPlayers;
+  let attempts = 0;
+  while (players[currentPlayer].finished && attempts < numPlayers) {
+    currentPlayer = (currentPlayer + 1) % numPlayers;
+    attempts++;
+  }
+  updateUI();
+  setDiceLocked(false);
+}
+
+function updateUI() {
+  const p = players[currentPlayer];
+  document.getElementById('current-player').textContent = 
+    p ? `🎯 ${p.name}'s Turn (Round ${Math.min(p.lap, 2)})` : '';
+
+  // Highlight active player's token on board
+  players.forEach((_, i) => {
+    const tok = document.getElementById('token-' + i);
+    if (tok) {
+      if (i === currentPlayer) tok.classList.add('active-token');
+      else tok.classList.remove('active-token');
+    }
+  });
+
+  const list = document.getElementById('score-list');
+  list.innerHTML = players.map((pl, i) => 
+    `<div class="score-item ${i === currentPlayer ? 'active-turn' : ''}">
+      <span>${pl.name}</span>
+      <strong>${pl.score} ⭐</strong>
+    </div>`
+  ).join('');
+}
+
+function checkEnd() {
+  const maxScore = Math.max(...players.map(p => p.score));
+  const tied = players.filter(p => p.score === maxScore);
+  if (tied.length > 1) {
+    startTieBreaker(tied);
+  } else {
+    showWinner();
+  }
+}
+
+function startTieBreaker(tiedPlayers) {
+  document.getElementById('tiebreaker').style.display = 'flex';
+  let currentTiePlayer = 0;
+  let bonusScores = tiedPlayers.map(() => 0);
+
+  const goods = [
+    {img: "imagine_images/orj0J.jpg", good: true},
+    {img: "imagine_images/xNrdh.jpg", good: true},
+    {img: "imagine_images/9clYj.jpg", good: true},
+    {img: "imagine_images/QjKyP.jpg", good: true},
+    {img: "imagine_images/8rUp7.jpg", good: true}
+  ];
+  const bads = [
+    {img: "imagine_images/2AzIe.jpg", good: false},
+    {img: "imagine_images/1pF7L.jpg", good: false},
+    {img: "imagine_images/qPOTP.jpg", good: false},
+    {img: "imagine_images/lQNG3.jpg", good: false},
+    {img: "imagine_images/ypyJb.jpg", good: false},
+    {img: "imagine_images/Qb3x4.jpg", good: false}
+  ];
+  const allItems = [...goods, ...bads];
+
+  function spawnGrid(p) {
+    const grid = document.getElementById('tie-grid');
+    grid.innerHTML = '';
+    const shown = shuffleArray(allItems).slice(0, 8);
+    shown.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'tie-item';
+      const img = document.createElement('img');
+      img.src = item.img;
+      div.appendChild(img);
+      div.onclick = () => {
+        if (item.good) {
+          playSFX('correct');
+          bonusScores[currentTiePlayer]++;
+          div.style.borderColor = '#0f0';
+          div.style.transform = 'scale(0.85)';
+        } else {
+          playSFX('wrong');
+          bonusScores[currentTiePlayer] = Math.max(0, bonusScores[currentTiePlayer] - 1);
+          div.style.borderColor = '#f00';
+          div.style.opacity = '0.4';
+        }
+        document.getElementById('tie-score').textContent = `${p.name}'s Bonus: ${bonusScores[currentTiePlayer]}`;
+        div.onclick = null;
+      };
+      grid.appendChild(div);
+    });
+  }
+
+  function playRound() {
+    if (currentTiePlayer >= tiedPlayers.length) {
+      tiedPlayers.forEach((p, i) => p.score += bonusScores[i]);
+      document.getElementById('tiebreaker').style.display = 'none';
+      showWinner();
+      return;
+    }
+    const p = tiedPlayers[currentTiePlayer];
+    document.getElementById('tie-player-banner').textContent = `Get Ready: ${p.name}!`;
+    document.getElementById('tie-score').textContent = `${p.name}'s Bonus: 0`;
+    speakText(`${p.name}, tap only the good things!`);
+
+    let time = 15;
+    const timerEl = document.getElementById('timer');
+    timerEl.textContent = time;
+    spawnGrid(p);
+
+    // Refresh board every 3 seconds so students have a continuous Whack-A-Mole challenge
+    const refreshInterval = setInterval(() => spawnGrid(p), 3000);
+
+    const interval = setInterval(() => {
+      time--;
+      timerEl.textContent = time;
+      if (time <= 0) {
+        clearInterval(interval);
+        clearInterval(refreshInterval);
+        currentTiePlayer++;
+        setTimeout(playRound, 1200);
+      }
+    }, 1000);
+  }
+  playRound();
+}
+
+function showWinner() {
+  playSFX('correct');
+  let max = -1, winner = 0;
+  players.forEach((p, i) => { 
+    if (p.score > max) { max = p.score; winner = i; } 
+  });
+  document.getElementById('winner').style.display = 'flex';
+  const winChar = characters[players[winner].char];
+  document.getElementById('winner-img').src = winChar.commanderWin || winChar.win;
+  document.getElementById('winner-name').textContent = 
+    `🏆 ${players[winner].name} Wins with ${max} Points!`;
+  
+  const sortedPlayers = [...players].sort((a,b) => b.score - a.score);
+  document.getElementById('final-scores').innerHTML = 
+    sortedPlayers.map((p, idx) => `${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🎖️'} <strong>${p.name}</strong>: ${p.score} points`).join('<br>');
+  
+  document.getElementById('game').style.display = 'none';
+  speakText(`Congratulations! ${players[winner].name} wins the game!`);
+}
+
+function resign() {
+  showWinner();
+}
+
+function toggleMusic() {
+  musicOn = !musicOn;
+  const btn = document.getElementById('music-btn');
+  if (musicOn) {
+    theme.play().catch(() => {});
+    if (btn) btn.textContent = '🎵 Music: ON';
+  } else {
+    theme.pause();
+    if (btn) btn.textContent = '🔇 Music: OFF';
+  }
+}
+</script>
 </body>
 </html>
